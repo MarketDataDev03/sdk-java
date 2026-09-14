@@ -44,7 +44,21 @@ public sealed interface ExpirationFilter
     if (days < 0) {
       throw new IllegalArgumentException("dte must be non-negative");
     }
-    return new Dte(days);
+    return new Dte(Integer.toString(days));
+  }
+
+  /**
+   * Days-to-expiration range filter — wire form {@code ?dte=MIN-MAX}, mirroring {@link
+   * StrikeFilter#range(double, double)}. {@code minDays} must not exceed {@code maxDays}.
+   */
+  static Dte dte(int minDays, int maxDays) {
+    if (minDays < 0) {
+      throw new IllegalArgumentException("dte must be non-negative");
+    }
+    if (minDays > maxDays) {
+      throw new IllegalArgumentException("minDays must be <= maxDays");
+    }
+    return new Dte(minDays + "-" + maxDays);
   }
 
   /**
@@ -77,7 +91,7 @@ public sealed interface ExpirationFilter
     }
   }
 
-  record Dte(int days) implements ExpirationFilter {}
+  record Dte(String wireValue) implements ExpirationFilter {}
 
   record Between(LocalDate from, LocalDate to) implements ExpirationFilter {}
 

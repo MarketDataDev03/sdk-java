@@ -311,7 +311,7 @@ public final class OptionsResource extends ConfiguredResource<OptionsResource> {
     if (f instanceof ExpirationFilter.OnDate v) {
       b.query("expiration", DateTimeFormatter.ISO_LOCAL_DATE.format(v.date()));
     } else if (f instanceof ExpirationFilter.Dte v) {
-      b.query("dte", v.days());
+      b.query("dte", v.wireValue());
     } else if (f instanceof ExpirationFilter.Between v) {
       b.query("from", DateTimeFormatter.ISO_LOCAL_DATE.format(v.from()));
       b.query("to", DateTimeFormatter.ISO_LOCAL_DATE.format(v.to()));
