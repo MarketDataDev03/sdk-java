@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Responds to Market Data API release 1.4.0, which widened the options chain
+endpoint's `?dte=` query parameter from an integer to a string so it can carry
+a range in addition to a single value.
+
+### Added
+
+- **`ExpirationFilter.dteRange(int minDays, int maxDays)`** — new
+  days-to-expiration range filter for `client.options().chain(...)`, wire form
+  `?dte=min-max`. Throws `IllegalArgumentException` if `minDays` is negative or
+  greater than `maxDays`.
+
+### Changed
+
+- **BREAKING:** `ExpirationFilter`'s sealed `permits` list gains
+  `ExpirationFilter.DteRange` alongside `OnDate`, `Dte`, `Between`,
+  `MonthYear`, and `All`. Any consumer with an exhaustive `switch` over
+  `ExpirationFilter` and no `default` branch will fail to compile until it
+  adds a `DteRange` case. To migrate, add a case for
+  `ExpirationFilter.DteRange` (or a `default` branch) to any such `switch`.
+
 ## [1.0.0] - 2026-06-29
 
 First stable release of the Market Data Java &amp; Kotlin SDK — a single JVM
