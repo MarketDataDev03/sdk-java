@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Verified that the existing `ExpirationFilter.dte(int)` single-value form
+  (`options/chain`'s `?dte=N`) remains compatible with Market Data API 1.4.0,
+  which additionally accepts dashed ranges (e.g. `30-45`) and comma-separated
+  lists (e.g. `7,14,30`) on `dte`; those forms are not yet exposed by this SDK.
+
 ## [1.0.0] - 2026-06-29
 
 First stable release of the Market Data Java &amp; Kotlin SDK — a single JVM
