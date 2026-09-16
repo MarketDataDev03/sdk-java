@@ -1,5 +1,6 @@
 package com.marketdata.sdk.options;
 
+import com.marketdata.sdk.Generated;
 import java.time.LocalDate;
 import java.util.Objects;
 
@@ -18,6 +19,8 @@ import java.util.Objects;
 public sealed interface ExpirationFilter
     permits ExpirationFilter.OnDate,
         ExpirationFilter.Dte,
+        ExpirationFilter.DteRange,
+        ExpirationFilter.DteComparison,
         ExpirationFilter.Between,
         ExpirationFilter.MonthYear,
         ExpirationFilter.All {
@@ -45,6 +48,55 @@ public sealed interface ExpirationFilter
       throw new IllegalArgumentException("dte must be non-negative");
     }
     return new Dte(days);
+  }
+
+  /**
+   * Days-to-expiration range — wire form {@code ?dte=MIN-MAX}. {@code minDays} must not exceed
+   * {@code maxDays}. The {@code ?dte=} parameter accepts a string (a bare number, a hyphenated
+   * range, or a comparison), mirroring {@link StrikeFilter}'s {@code ?strike=} convention on this
+   * same endpoint.
+   */
+  static DteRange dte(int minDays, int maxDays) {
+    if (minDays < 0) {
+      throw new IllegalArgumentException("dte must be non-negative");
+    }
+    if (minDays > maxDays) {
+      throw new IllegalArgumentException("minDays must be <= maxDays");
+    }
+    return new DteRange(minDays, maxDays);
+  }
+
+  /** Days-to-expiration comparison — wire form {@code ?dte=<operator><N>} (e.g. {@code >=30}). */
+  // @Generated: the null-operator guard is unreachable through the public comparison factories,
+  // which always supply a non-null Operator from the typed enum.
+  @Generated
+  static DteComparison dte(Operator operator, int days) {
+    if (operator == null) {
+      throw new IllegalArgumentException("operator must not be null");
+    }
+    if (days < 0) {
+      throw new IllegalArgumentException("dte must be non-negative");
+    }
+    return new DteComparison(operator, days);
+  }
+
+  /** Comparison operators accepted by the API. */
+  enum Operator {
+    GT(">"),
+    GTE(">="),
+    LT("<"),
+    LTE("<=");
+
+    private final String wireValue;
+
+    Operator(String wireValue) {
+      this.wireValue = wireValue;
+    }
+
+    /** The wire-form prefix the API expects, e.g. {@code ">"}. */
+    public String wireValue() {
+      return wireValue;
+    }
   }
 
   /**
@@ -78,6 +130,10 @@ public sealed interface ExpirationFilter
   }
 
   record Dte(int days) implements ExpirationFilter {}
+
+  record DteRange(int minDays, int maxDays) implements ExpirationFilter {}
+
+  record DteComparison(Operator operator, int days) implements ExpirationFilter {}
 
   record Between(LocalDate from, LocalDate to) implements ExpirationFilter {}
 
