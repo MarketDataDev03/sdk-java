@@ -2,6 +2,8 @@ package com.marketdata.sdk.options;
 
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Mutually-exclusive expiration filter for {@code /v1/options/chain/}. The chain endpoint's
@@ -39,12 +41,42 @@ public sealed interface ExpirationFilter
     return new All();
   }
 
-  /** Days-to-expiration filter — wire form {@code ?dte=N}. */
+  /** Days-to-expiration filter — a single value, wire form {@code ?dte=N}. */
   static Dte dte(int days) {
     if (days < 0) {
       throw new IllegalArgumentException("dte must be non-negative");
     }
-    return new Dte(days);
+    return new Dte(Integer.toString(days));
+  }
+
+  /**
+   * Days-to-expiration filter — an inclusive range, wire form {@code ?dte=N-M}. {@code min} must
+   * not exceed {@code max}.
+   */
+  static Dte dteRange(int min, int max) {
+    if (min < 0 || max < 0) {
+      throw new IllegalArgumentException("dte must be non-negative");
+    }
+    if (min > max) {
+      throw new IllegalArgumentException("min must be <= max");
+    }
+    return new Dte(max + "-" + min);
+  }
+
+  /**
+   * Days-to-expiration filter — a comma-separated list, wire form {@code ?dte=N,M,...}. Must not
+   * be empty.
+   */
+  static Dte dteList(int... days) {
+    if (days.length == 0) {
+      throw new IllegalArgumentException("days must not be empty");
+    }
+    for (int d : days) {
+      if (d < 0) {
+        throw new IllegalArgumentException("dte must be non-negative");
+      }
+    }
+    return new Dte(IntStream.of(days).mapToObj(Integer::toString).collect(Collectors.joining(",")));
   }
 
   /**
@@ -77,7 +109,7 @@ public sealed interface ExpirationFilter
     }
   }
 
-  record Dte(int days) implements ExpirationFilter {}
+  record Dte(String wireValue) implements ExpirationFilter {}
 
   record Between(LocalDate from, LocalDate to) implements ExpirationFilter {}
 
