@@ -1,6 +1,8 @@
 package com.marketdata.sdk.options;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -18,6 +20,8 @@ import java.util.Objects;
 public sealed interface ExpirationFilter
     permits ExpirationFilter.OnDate,
         ExpirationFilter.Dte,
+        ExpirationFilter.DteRange,
+        ExpirationFilter.DteList,
         ExpirationFilter.Between,
         ExpirationFilter.MonthYear,
         ExpirationFilter.All {
@@ -39,12 +43,45 @@ public sealed interface ExpirationFilter
     return new All();
   }
 
-  /** Days-to-expiration filter — wire form {@code ?dte=N}. */
+  /** Days-to-expiration filter, a single value — wire form {@code ?dte=N}. */
   static Dte dte(int days) {
+    requireNonNegativeDte(days);
+    return new Dte(days);
+  }
+
+  /**
+   * Days-to-expiration filter, an inclusive range — wire form {@code ?dte=MIN-MAX} (e.g. {@code
+   * 30-45}). {@code minDays} must not exceed {@code maxDays}.
+   */
+  static DteRange dteRange(int minDays, int maxDays) {
+    requireNonNegativeDte(minDays);
+    requireNonNegativeDte(maxDays);
+    if (minDays > maxDays) {
+      throw new IllegalArgumentException("min must be <= max");
+    }
+    return new DteRange(minDays, maxDays);
+  }
+
+  /**
+   * Days-to-expiration filter, a discrete set — wire form {@code ?dte=D1,D2,...} (e.g. {@code
+   * 7,14,30}). At least one value is required; the varargs signature makes that unrepresentable
+   * rather than a runtime check.
+   */
+  static DteList dteList(int first, int... rest) {
+    requireNonNegativeDte(first);
+    List<Integer> days = new ArrayList<>();
+    days.add(first);
+    for (int day : rest) {
+      requireNonNegativeDte(day);
+      days.add(day);
+    }
+    return new DteList(days);
+  }
+
+  private static void requireNonNegativeDte(int days) {
     if (days < 0) {
       throw new IllegalArgumentException("dte must be non-negative");
     }
-    return new Dte(days);
   }
 
   /**
@@ -78,6 +115,15 @@ public sealed interface ExpirationFilter
   }
 
   record Dte(int days) implements ExpirationFilter {}
+
+  record DteRange(int minDays, int maxDays) implements ExpirationFilter {}
+
+  /** {@code days} is defensively copied and immutable; always non-empty (see {@link #dteList}). */
+  record DteList(List<Integer> days) implements ExpirationFilter {
+    public DteList {
+      days = List.copyOf(days);
+    }
+  }
 
   record Between(LocalDate from, LocalDate to) implements ExpirationFilter {}
 

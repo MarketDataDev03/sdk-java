@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING:** In response to Market Data API 1.4.0, the `chain()` endpoint's `dte`
+  expiration filter now accepts a range or a discrete set of days in addition to a
+  single value. `ExpirationFilter.dte(int)` is unchanged, but the sealed
+  `ExpirationFilter` interface gains two new variants, `ExpirationFilter.DteRange`
+  and `ExpirationFilter.DteList`, reached via the new `ExpirationFilter.dteRange(int
+  minDays, int maxDays)` (wire form `?dte=MIN-MAX`) and `ExpirationFilter.dteList(int
+  first, int... rest)` (wire form `?dte=D1,D2,...`) factories. **Migration:** any
+  consumer with an exhaustive `switch` over `ExpirationFilter` will no longer compile
+  until it adds cases for `DteRange` and `DteList` — add them (or a `default`) to
+  restore exhaustiveness.
+
 ## [1.0.0] - 2026-06-29
 
 First stable release of the Market Data Java &amp; Kotlin SDK — a single JVM
