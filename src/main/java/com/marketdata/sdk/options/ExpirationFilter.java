@@ -18,6 +18,7 @@ import java.util.Objects;
 public sealed interface ExpirationFilter
     permits ExpirationFilter.OnDate,
         ExpirationFilter.Dte,
+        ExpirationFilter.DteRange,
         ExpirationFilter.Between,
         ExpirationFilter.MonthYear,
         ExpirationFilter.All {
@@ -45,6 +46,20 @@ public sealed interface ExpirationFilter
       throw new IllegalArgumentException("dte must be non-negative");
     }
     return new Dte(days);
+  }
+
+  /**
+   * Days-to-expiration range — wire form {@code ?dte=MIN-MAX}, mirroring {@link
+   * StrikeFilter#range}'s dashed-string convention. {@code min} must not exceed {@code max}.
+   */
+  static DteRange dteRange(int min, int max) {
+    if (min < 0) {
+      throw new IllegalArgumentException("dte must be non-negative");
+    }
+    if (min > max) {
+      throw new IllegalArgumentException("min must be <= max");
+    }
+    return new DteRange(min, max);
   }
 
   /**
@@ -78,6 +93,8 @@ public sealed interface ExpirationFilter
   }
 
   record Dte(int days) implements ExpirationFilter {}
+
+  record DteRange(int min, int max) implements ExpirationFilter {}
 
   record Between(LocalDate from, LocalDate to) implements ExpirationFilter {}
 
