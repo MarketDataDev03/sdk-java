@@ -1051,6 +1051,21 @@ class OptionsResourceTest {
         .isEqualTo("http://localhost/v1/options/chain/AAPL/?dte=30-45");
   }
 
+  /** Pre-existing single-number {@code dte} behavior is unaffected by the range/list additions. */
+  @Test
+  void chainExpirationFilterDteRegressionStillEmitsBareNumber() {
+    CapturingClient client = okWith(CANNED_CHAIN_BODY);
+    OptionsResource options = resourceWith(client);
+
+    options
+        .chainAsync(
+            OptionsChainRequest.builder("AAPL").expirationFilter(ExpirationFilter.dte(30)).build())
+        .join();
+
+    assertThat(client.captured.get(0).uri().toString())
+        .isEqualTo("http://localhost/v1/options/chain/AAPL/?dte=30");
+  }
+
   @Test
   void chainExpirationFilterBetweenTranslatesToFromTo() {
     CapturingClient client = okWith(CANNED_CHAIN_BODY);
