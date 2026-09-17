@@ -39,12 +39,44 @@ public sealed interface ExpirationFilter
     return new All();
   }
 
-  /** Days-to-expiration filter — wire form {@code ?dte=N}. */
+  /** Days-to-expiration filter, single value — wire form {@code ?dte=N}. */
   static Dte dte(int days) {
+    requireNonNegativeDte(days);
+    return new Dte(Integer.toString(days));
+  }
+
+  /**
+   * Days-to-expiration filter, inclusive range — wire form {@code ?dte=min-max} (e.g. {@code
+   * 30-45}). {@code minDays} must not exceed {@code maxDays}.
+   */
+  static Dte dteRange(int minDays, int maxDays) {
+    requireNonNegativeDte(minDays);
+    requireNonNegativeDte(maxDays);
+    if (minDays > maxDays) {
+      throw new IllegalArgumentException("min must be <= max");
+    }
+    return new Dte(minDays + "-" + maxDays);
+  }
+
+  /**
+   * Days-to-expiration filter, comma-separated list — wire form {@code ?dte=d1,d2,...}. At least
+   * one value is required — enforced by the {@code first, rest...} signature, so an empty list is
+   * unrepresentable through the public API.
+   */
+  static Dte dteList(int first, int... rest) {
+    requireNonNegativeDte(first);
+    StringBuilder wireValue = new StringBuilder(Integer.toString(first));
+    for (int day : rest) {
+      requireNonNegativeDte(day);
+      wireValue.append(',').append(day);
+    }
+    return new Dte(wireValue.toString());
+  }
+
+  private static void requireNonNegativeDte(int days) {
     if (days < 0) {
       throw new IllegalArgumentException("dte must be non-negative");
     }
-    return new Dte(days);
   }
 
   /**
@@ -77,7 +109,12 @@ public sealed interface ExpirationFilter
     }
   }
 
-  record Dte(int days) implements ExpirationFilter {}
+  /**
+   * Wire value already rendered for {@code ?dte=} — a single number, a range ({@code min-max}), or
+   * a comma-separated list, per {@link #dte(int)}, {@link #dteRange(int, int)}, and {@link
+   * #dteList(int, int...)}.
+   */
+  record Dte(String wireValue) implements ExpirationFilter {}
 
   record Between(LocalDate from, LocalDate to) implements ExpirationFilter {}
 

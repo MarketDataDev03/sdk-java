@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Responds to Market Data API 1.4.0, which changed `GET /v1/options/chain/{underlying}/`'s
+`dte` query parameter from an integer to a string accepting a single number, a range
+(`30-45`), or a comma-separated list.
+
+### Added
+
+- `ExpirationFilter.dteRange(int minDays, int maxDays)` — inclusive days-to-expiration
+  range filter for `options().chain(...)`, wire form `?dte=min-max`.
+- `ExpirationFilter.dteList(int first, int... rest)` — comma-separated days-to-expiration
+  list filter for `options().chain(...)`, wire form `?dte=d1,d2,...`.
+
+### Changed
+
+- **Breaking:** `ExpirationFilter.Dte` now carries its wire value as a `String`
+  (`wireValue()`) rather than an `int` (`days()`), mirroring the API's `dte` type change.
+  `Dte.days()` is removed, and the canonical constructor is now `Dte(String)` instead of
+  `Dte(int)`. Consumers reading `.days()` off a `Dte` must switch to `.wireValue()`;
+  consumers constructing `Dte` directly must go through `ExpirationFilter.dte(int)`,
+  `.dteRange(int, int)`, or `.dteList(int, int...)` instead of the constructor.
+  `ExpirationFilter.dte(int days)` itself keeps its signature and behavior, so most call
+  sites are unaffected.
+
 ## [1.0.0] - 2026-06-29
 
 First stable release of the Market Data Java &amp; Kotlin SDK — a single JVM

@@ -21,6 +21,8 @@ OptionsChainRequest.builder(String symbol)
     // Expiration selection (sealed ExpirationFilter — pick one):
     .expirationFilter(ExpirationFilter.onDate(LocalDate date))
     .expirationFilter(ExpirationFilter.dte(int days))          // days-to-expiration
+    .expirationFilter(ExpirationFilter.dteRange(int minDays, int maxDays))  // dte range, e.g. 30-45
+    .expirationFilter(ExpirationFilter.dteList(int first, int... rest))    // dte comma-separated list
     .expirationFilter(ExpirationFilter.between(LocalDate from, LocalDate to))
     .expirationFilter(ExpirationFilter.all())                  // every expiration
     // (if omitted, the API narrows to the front month)
