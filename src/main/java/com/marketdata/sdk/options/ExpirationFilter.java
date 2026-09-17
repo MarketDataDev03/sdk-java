@@ -1,6 +1,8 @@
 package com.marketdata.sdk.options;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -14,10 +16,17 @@ import java.util.Objects;
  * <p>Additive expiration-type predicates ({@code weekly}/{@code monthly}/{@code quarterly}/{@code
  * am}/{@code pm}) are not part of this hierarchy — they intersect freely with any variant and stay
  * as separate booleans on the request builder.
+ *
+ * <p>{@code dte} carries three distinct wire syntaxes on a single string-typed query parameter — a
+ * number, a dashed range, or a comma-separated list — modeled as three separate variants ({@link
+ * #dte}, {@link #dteRange}, {@link #dteList}) rather than one variant with a formatting branch, so
+ * each stays independently constructible and testable.
  */
 public sealed interface ExpirationFilter
     permits ExpirationFilter.OnDate,
         ExpirationFilter.Dte,
+        ExpirationFilter.DteRange,
+        ExpirationFilter.DteList,
         ExpirationFilter.Between,
         ExpirationFilter.MonthYear,
         ExpirationFilter.All {
@@ -41,10 +50,42 @@ public sealed interface ExpirationFilter
 
   /** Days-to-expiration filter — wire form {@code ?dte=N}. */
   static Dte dte(int days) {
+    requireNonNegativeDte(days);
+    return new Dte(days);
+  }
+
+  /**
+   * Days-to-expiration range filter — wire form {@code ?dte=min-max}, e.g. {@code ?dte=30-45}.
+   * {@code min} must not exceed {@code max}.
+   */
+  static DteRange dteRange(int min, int max) {
+    requireNonNegativeDte(min);
+    requireNonNegativeDte(max);
+    if (min > max) {
+      throw new IllegalArgumentException("min must be <= max");
+    }
+    return new DteRange(min, max);
+  }
+
+  /**
+   * Days-to-expiration list filter — wire form {@code ?dte=a,b,c}, e.g. {@code ?dte=30,45,60}. At
+   * least one value is required.
+   */
+  static DteList dteList(int first, int... rest) {
+    requireNonNegativeDte(first);
+    List<Integer> days = new ArrayList<>();
+    days.add(first);
+    for (int day : rest) {
+      requireNonNegativeDte(day);
+      days.add(day);
+    }
+    return new DteList(List.copyOf(days));
+  }
+
+  private static void requireNonNegativeDte(int days) {
     if (days < 0) {
       throw new IllegalArgumentException("dte must be non-negative");
     }
-    return new Dte(days);
   }
 
   /**
@@ -78,6 +119,10 @@ public sealed interface ExpirationFilter
   }
 
   record Dte(int days) implements ExpirationFilter {}
+
+  record DteRange(int min, int max) implements ExpirationFilter {}
+
+  record DteList(List<Integer> days) implements ExpirationFilter {}
 
   record Between(LocalDate from, LocalDate to) implements ExpirationFilter {}
 

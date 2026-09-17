@@ -976,6 +976,82 @@ class OptionsResourceTest {
   }
 
   @Test
+  void chainExpirationFilterDteSingleNumberTranslatesToDteParam() {
+    CapturingClient client = okWith(CANNED_CHAIN_BODY);
+    OptionsResource options = resourceWith(client);
+
+    options
+        .chainAsync(
+            OptionsChainRequest.builder("AAPL").expirationFilter(ExpirationFilter.dte(30)).build())
+        .join();
+
+    assertThat(client.captured.get(0).uri().toString())
+        .isEqualTo("http://localhost/v1/options/chain/AAPL/?dte=30");
+  }
+
+  @Test
+  void chainExpirationFilterDteRangeTranslatesToDashedDteParam() {
+    CapturingClient client = okWith(CANNED_CHAIN_BODY);
+    OptionsResource options = resourceWith(client);
+
+    options
+        .chainAsync(
+            OptionsChainRequest.builder("AAPL")
+                .expirationFilter(ExpirationFilter.dteRange(30, 45))
+                .build())
+        .join();
+
+    assertThat(client.captured.get(0).uri().toString())
+        .isEqualTo("http://localhost/v1/options/chain/AAPL/?dte=30-45");
+  }
+
+  @Test
+  void chainExpirationFilterDteListTranslatesToCommaJoinedDteParam() {
+    CapturingClient client = okWith(CANNED_CHAIN_BODY);
+    OptionsResource options = resourceWith(client);
+
+    options
+        .chainAsync(
+            OptionsChainRequest.builder("AAPL")
+                .expirationFilter(ExpirationFilter.dteList(30, 45, 60))
+                .build())
+        .join();
+
+    String url =
+        java.net.URLDecoder.decode(
+            client.captured.get(0).uri().toString(), java.nio.charset.StandardCharsets.UTF_8);
+    assertThat(url).isEqualTo("http://localhost/v1/options/chain/AAPL/?dte=30,45,60");
+  }
+
+  @Test
+  void chainExpirationFilterDteZeroDaysRendersAsZero() {
+    CapturingClient client = okWith(CANNED_CHAIN_BODY);
+    OptionsResource options = resourceWith(client);
+
+    options
+        .chainAsync(
+            OptionsChainRequest.builder("AAPL").expirationFilter(ExpirationFilter.dte(0)).build())
+        .join();
+
+    assertThat(client.captured.get(0).uri().toString())
+        .isEqualTo("http://localhost/v1/options/chain/AAPL/?dte=0");
+  }
+
+  @Test
+  void chainExpirationFilterDteRangeSyncMirrorsAsync() {
+    CapturingClient client = okWith(CANNED_CHAIN_BODY);
+    OptionsResource options = resourceWith(client);
+
+    options.chain(
+        OptionsChainRequest.builder("AAPL")
+            .expirationFilter(ExpirationFilter.dteRange(30, 45))
+            .build());
+
+    assertThat(client.captured.get(0).uri().toString())
+        .isEqualTo("http://localhost/v1/options/chain/AAPL/?dte=30-45");
+  }
+
+  @Test
   void chainExpirationFilterBetweenTranslatesToFromTo() {
     CapturingClient client = okWith(CANNED_CHAIN_BODY);
     OptionsResource options = resourceWith(client);
@@ -1199,6 +1275,27 @@ class OptionsResourceTest {
   @Test
   void expirationFilterDteRejectsNegative() {
     assertThatThrownBy(() -> ExpirationFilter.dte(-1))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("dte must be non-negative");
+  }
+
+  @Test
+  void expirationFilterDteRangeRejectsMinGreaterThanMax() {
+    assertThatThrownBy(() -> ExpirationFilter.dteRange(45, 30))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("min must be <= max");
+  }
+
+  @Test
+  void expirationFilterDteRangeRejectsNegativeMin() {
+    assertThatThrownBy(() -> ExpirationFilter.dteRange(-1, 5))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("dte must be non-negative");
+  }
+
+  @Test
+  void expirationFilterDteListRejectsNegativeElement() {
+    assertThatThrownBy(() -> ExpirationFilter.dteList(30, -5, 60))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("dte must be non-negative");
   }

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Options DTE filtering enhancements** — `ExpirationFilter.dteRange(int, int)` and `ExpirationFilter.dteList(int, int...)` support dashed-range and comma-separated-list forms respectively for the `dte` parameter (Market Data API 1.4.0).
+
 ## [1.0.0] - 2026-06-29
 
 First stable release of the Market Data Java &amp; Kotlin SDK — a single JVM
