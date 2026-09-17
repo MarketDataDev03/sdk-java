@@ -976,6 +976,42 @@ class OptionsResourceTest {
   }
 
   @Test
+  void chainExpirationFilterDteRangeTranslatesToDashedDteParam() {
+    CapturingClient client = okWith(CANNED_CHAIN_BODY);
+    OptionsResource options = resourceWith(client);
+
+    options
+        .chainAsync(
+            OptionsChainRequest.builder("AAPL")
+                .expirationFilter(ExpirationFilter.dteRange(30, 45))
+                .build())
+        .join();
+
+    assertThat(client.captured.get(0).uri().toString())
+        .isEqualTo("http://localhost/v1/options/chain/AAPL/?dte=30-45");
+  }
+
+  @Test
+  void chainExpirationFilterDteInTranslatesToCommaSeparatedDteParam() {
+    CapturingClient client = okWith(CANNED_CHAIN_BODY);
+    OptionsResource options = resourceWith(client);
+
+    options
+        .chainAsync(
+            OptionsChainRequest.builder("AAPL")
+                .expirationFilter(ExpirationFilter.dteIn(List.of(7, 14, 30)))
+                .build())
+        .join();
+
+    // The comma is URL-encoded on the wire, so decode before asserting (same convention as the
+    // columns/symbols comma-joined params).
+    String decodedUri =
+        java.net.URLDecoder.decode(
+            client.captured.get(0).uri().toString(), java.nio.charset.StandardCharsets.UTF_8);
+    assertThat(decodedUri).isEqualTo("http://localhost/v1/options/chain/AAPL/?dte=7,14,30");
+  }
+
+  @Test
   void chainExpirationFilterBetweenTranslatesToFromTo() {
     CapturingClient client = okWith(CANNED_CHAIN_BODY);
     OptionsResource options = resourceWith(client);
@@ -1199,6 +1235,41 @@ class OptionsResourceTest {
   @Test
   void expirationFilterDteRejectsNegative() {
     assertThatThrownBy(() -> ExpirationFilter.dte(-1))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("dte must be non-negative");
+  }
+
+  @Test
+  void expirationFilterDteRangeRejectsMinGreaterThanMax() {
+    assertThatThrownBy(() -> ExpirationFilter.dteRange(45, 30))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("minDays must be <= maxDays");
+  }
+
+  @Test
+  void expirationFilterDteRangeRejectsNegativeMin() {
+    assertThatThrownBy(() -> ExpirationFilter.dteRange(-1, 30))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("dte must be non-negative");
+  }
+
+  @Test
+  void expirationFilterDteRangeRejectsNegativeMax() {
+    assertThatThrownBy(() -> ExpirationFilter.dteRange(0, -30))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("dte must be non-negative");
+  }
+
+  @Test
+  void expirationFilterDteInRejectsEmptyList() {
+    assertThatThrownBy(() -> ExpirationFilter.dteIn(List.of()))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("days must not be empty");
+  }
+
+  @Test
+  void expirationFilterDteInRejectsNegativeEntry() {
+    assertThatThrownBy(() -> ExpirationFilter.dteIn(List.of(7, -14, 30)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("dte must be non-negative");
   }

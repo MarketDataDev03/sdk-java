@@ -1,7 +1,9 @@
 package com.marketdata.sdk.options;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Mutually-exclusive expiration filter for {@code /v1/options/chain/}. The chain endpoint's
@@ -39,12 +41,43 @@ public sealed interface ExpirationFilter
     return new All();
   }
 
-  /** Days-to-expiration filter — wire form {@code ?dte=N}. */
+  /** Days-to-expiration filter, single value — wire form {@code ?dte=N}. */
   static Dte dte(int days) {
     if (days < 0) {
       throw new IllegalArgumentException("dte must be non-negative");
     }
-    return new Dte(days);
+    return new Dte(Integer.toString(days));
+  }
+
+  /**
+   * Days-to-expiration filter, inclusive range — wire form {@code ?dte=MIN-MAX}. {@code minDays}
+   * must not exceed {@code maxDays}.
+   */
+  static Dte dteRange(int minDays, int maxDays) {
+    if (minDays < 0 || maxDays < 0) {
+      throw new IllegalArgumentException("dte must be non-negative");
+    }
+    if (minDays > maxDays) {
+      throw new IllegalArgumentException("minDays must be <= maxDays");
+    }
+    return new Dte(minDays + "-" + maxDays);
+  }
+
+  /**
+   * Days-to-expiration filter, discrete set — wire form {@code ?dte=D1,D2,...}. {@code days} must
+   * be non-empty and every entry non-negative.
+   */
+  static Dte dteIn(List<Integer> days) {
+    Objects.requireNonNull(days, "days");
+    if (days.isEmpty()) {
+      throw new IllegalArgumentException("days must not be empty");
+    }
+    for (Integer d : days) {
+      if (d == null || d < 0) {
+        throw new IllegalArgumentException("dte must be non-negative");
+      }
+    }
+    return new Dte(days.stream().map(String::valueOf).collect(Collectors.joining(",")));
   }
 
   /**
@@ -77,7 +110,11 @@ public sealed interface ExpirationFilter
     }
   }
 
-  record Dte(int days) implements ExpirationFilter {}
+  /**
+   * @param value the raw wire-form {@code dte} value — single number, {@code MIN-MAX}, or a
+   *     comma-separated list.
+   */
+  record Dte(String value) implements ExpirationFilter {}
 
   record Between(LocalDate from, LocalDate to) implements ExpirationFilter {}
 
