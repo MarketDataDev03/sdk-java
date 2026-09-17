@@ -1,7 +1,9 @@
 package com.marketdata.sdk.options;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Mutually-exclusive expiration filter for {@code /v1/options/chain/}. The chain endpoint's
@@ -44,7 +46,37 @@ public sealed interface ExpirationFilter
     if (days < 0) {
       throw new IllegalArgumentException("dte must be non-negative");
     }
-    return new Dte(days);
+    return new Dte(Integer.toString(days));
+  }
+
+  /**
+   * Inclusive days-to-expiration range — wire form {@code ?dte=min-max}, e.g. {@code 30-45}. {@code
+   * min} must not exceed {@code max}.
+   */
+  static Dte dteRange(int min, int max) {
+    if (min < 0 || max < 0) {
+      throw new IllegalArgumentException("dte must be non-negative");
+    }
+    if (min > max) {
+      throw new IllegalArgumentException("min must be <= max");
+    }
+    return new Dte(min + "-" + max);
+  }
+
+  /**
+   * A discrete set of days-to-expiration values — wire form {@code ?dte=d1,d2,...}. {@code days}
+   * must not be empty.
+   */
+  static Dte dteIn(List<Integer> days) {
+    if (days.isEmpty()) {
+      throw new IllegalArgumentException("dte list must not be empty");
+    }
+    for (int d : days) {
+      if (d < 0) {
+        throw new IllegalArgumentException("dte must be non-negative");
+      }
+    }
+    return new Dte(days.stream().map(String::valueOf).collect(Collectors.joining(",")));
   }
 
   /**
@@ -77,7 +109,12 @@ public sealed interface ExpirationFilter
     }
   }
 
-  record Dte(int days) implements ExpirationFilter {}
+  /**
+   * The {@code dte} wire expression — a single number ({@link #dte}), a dashed range ({@link
+   * #dteRange}), or a comma-separated list ({@link #dteIn}). Formatting is done at the factory so
+   * the record just carries the already-valid wire string.
+   */
+  record Dte(String expression) implements ExpirationFilter {}
 
   record Between(LocalDate from, LocalDate to) implements ExpirationFilter {}
 
